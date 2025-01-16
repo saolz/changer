@@ -1,46 +1,19 @@
 #!/bin/bash
 
-# This script installs Kismet on Ubuntu by building from the official GitHub source
+# Update package list
+echo "Adding Kismet GPG key..."
+wget -O - https://www.kismetwireless.net/repos/kismet-release.gpg.key --quiet | gpg --dearmor | sudo tee /usr/share/keyrings/kismet-archive-keyring.gpg >/dev/null
 
-# Update package lists
-echo "Updating package lists..."
+# Add the Kismet repository
+echo "Adding Kismet repository..."
+echo 'deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/jammy jammy main' | sudo tee /etc/apt/sources.list.d/kismet.list >/dev/null
+
+# Update the package list
+echo "Updating package list..."
 sudo apt update
 
-# Install required dependencies
-echo "Installing required dependencies..."
-sudo apt install -y build-essential git libmicrohttpd-dev libnl-3-dev libnl-genl-3-dev \
-  libcap-dev pkg-config libpcap-dev libssl-dev python3 python3-setuptools python3-dev python3-pip \
-  libpcre2-dev libsqlite3-dev libwebsockets-dev libprotobuf-dev protobuf-compiler
+# Install Kismet
+echo "Installing Kismet..."
+sudo apt install -y kismet
 
-# Clone the Kismet GitHub repository
-echo "Cloning the Kismet repository..."
-if [ -d "kismet" ]; then
-  echo "Kismet directory already exists. Pulling latest changes..."
-  cd kismet && git pull && cd ..
-else
-  git clone https://github.com/kismetwireless/kismet.git
-fi
-
-# Navigate to the Kismet directory
-cd kismet
-
-# Build and install Kismet
-echo "Building Kismet..."
-./configure
-make -j$(nproc)
-
-if [ $? -ne 0 ]; then
-  echo "Error: Build failed. Please check the output above for errors."
-  exit 1
-fi
-
-sudo make install
-
-# Verify installation
-echo "Verifying installation..."
-if command -v kismet &> /dev/null; then
-  kismet --version
-  echo "Kismet installation is complete!"
-else
-  echo "Error: Kismet installation failed."
-fi
+echo "Kismet installation completed!"
