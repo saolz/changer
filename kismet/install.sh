@@ -9,7 +9,8 @@ sudo apt update
 # Install required dependencies
 echo "Installing required dependencies..."
 sudo apt install -y build-essential git libmicrohttpd-dev libnl-3-dev libnl-genl-3-dev \
-  libcap-dev pkg-config libpcap-dev libssl-dev python3 python3-setuptools python3-dev python3-pip
+  libcap-dev pkg-config libpcap-dev libssl-dev python3 python3-setuptools python3-dev python3-pip \
+  libpcre2-dev libsqlite3-dev
 
 # Clone the Kismet GitHub repository
 echo "Cloning the Kismet repository..."
@@ -27,6 +28,12 @@ cd kismet
 echo "Building Kismet..."
 ./configure
 make -j$(nproc)
+
+if [ $? -ne 0 ]; then
+  echo "Error: Build failed. Please check the output above for errors."
+  exit 1
+fi
+
 sudo make install
 
 # Verify installation
