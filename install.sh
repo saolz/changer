@@ -1,18 +1,22 @@
 #!/bin/bash
 
-# This script installs dnsrecon on Ubuntu 2022
+# This script installs fierce on Ubuntu 2022
 
 # Update package lists
 echo "Updating package lists..."
 sudo apt update
 
-# Install dnsrecon
-echo "Installing dnsrecon..."
-sudo apt install -y dnsrecon
+# Install dependencies
+echo "Installing dependencies..."
+sudo apt install -y libnet-ssleay-perl libwww-perl libipc-run-perl
+
+# Install fierce
+echo "Installing fierce..."
+sudo apt install -y fierce
 
 # Verify installation
 echo "Verifying installation..."
-dnsrecon --version
+fierce --version
 
 # Script completion message
-echo "dnsrecon installation complete!"
+echo "fierce installation complete!"
