@@ -1,6 +1,12 @@
 #!/bin/bash
 
-# This script installs Kismet on Ubuntu using sudo apt install
+# This script installs Kismet on Ubuntu using the official repository
+
+# Add the Kismet official repository
+echo "Adding the Kismet repository..."
+wget -O - https://www.kismetwireless.net/repos/kismet-release.gpg.key | gpg --dearmor > kismet.gpg
+sudo mv kismet.gpg /etc/apt/trusted.gpg.d/
+echo "deb https://www.kismetwireless.net/repos/apt/release/ubuntu/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/kismet.list
 
 # Update package lists
 echo "Updating package lists..."
