@@ -10,7 +10,7 @@ sudo apt update
 echo "Installing required dependencies..."
 sudo apt install -y build-essential git libmicrohttpd-dev libnl-3-dev libnl-genl-3-dev \
   libcap-dev pkg-config libpcap-dev libssl-dev python3 python3-setuptools python3-dev python3-pip \
-  libpcre2-dev libsqlite3-dev libwebsockets-dev
+  libpcre2-dev libsqlite3-dev libwebsockets-dev libprotobuf-dev protobuf-compiler
 
 # Clone the Kismet GitHub repository
 echo "Cloning the Kismet repository..."
