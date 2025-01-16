@@ -4,7 +4,7 @@ python3 script.py -u 001 --domain google.com --connect --wide --output /path/to/
 1. Traverse Nearby IPs
 
 
-Edit
+
 python3 script.py -u 002 --domain example.com --traverse 5 --output /path/to/custom/directory
 Explanation:
 
@@ -15,7 +15,7 @@ Explanation:
 2. Search Specific Domains
 
 
-Edit
+
 python3 script.py -u 003 --domain test.com --search example.com sub.example.com
 Explanation:
 
@@ -25,7 +25,7 @@ Explanation:
 3. Scan a Specific IP Range (CIDR Notation)
 
 
-Edit
+
 python3 script.py -u 004 --range 192.168.0.0/24 --delay 5
 Explanation:
 
@@ -35,7 +35,7 @@ Explanation:
 4. Use Subdomains from a File
 
 
-Edit
+
 python3 script.py -u 005 --domain mydomain.com --subdomain-file subdomains.txt
 Explanation:
 
@@ -45,7 +45,7 @@ Explanation:
 5. Specify Custom DNS Servers
 
 
-Edit
+
 python3 script.py -u 006 --domain company.com --dns-servers 8.8.8.8 1.1.1.1 --tcp
 Explanation:
 
@@ -56,7 +56,7 @@ Explanation:
 6. Use a Combination of Options
 
 
-Edit
+
 python3 script.py -u 007 --domain sample.com --connect --wide --dns-file dnslist.txt --delay 10
 Explanation:
 
@@ -69,7 +69,7 @@ Explanation:
 7. No Custom Output Directory
 
 
-Edit
+
 python3 script.py -u 008 --domain testing.com --subdomains www mail ftp
 Explanation:
 
