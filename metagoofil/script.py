@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime
+import csv
 
 # Function to create a folder for the UserID and store the output
 def create_user_folder(user_id):
@@ -33,9 +34,8 @@ def run_metagoofil(input_domain, file_types, delay, save_file, search_max, url_t
             "-d", input_domain,
             "-t", file_types,
             "-e", str(delay),
-            "-f", save_file,
-            "-i", str(url_timeout),
             "-l", str(search_max),
+            "-i", str(url_timeout),
             "-n", str(download_limit),
             "-o", save_directory,
             "-r", str(threads)
@@ -58,10 +58,26 @@ def run_metagoofil(input_domain, file_types, delay, save_file, search_max, url_t
             print(f"Error running Metagoofil: {result.stderr}")
             sys.exit(1)
 
-        print(f"Metagoofil completed successfully. Output:\n{result.stdout}")
+        print("Metagoofil command completed successfully.")
+        return result.stdout  # Return the terminal output
 
     except Exception as e:
         print(f"Error running Metagoofil command: {e}")
+        sys.exit(1)
+
+# Function to save terminal output to a CSV file
+def save_output_to_csv(output_text, save_file_path):
+    try:
+        with open(save_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
+            csv_writer = csv.writer(csv_file)
+
+            # Split the output into lines and write each line as a row in the CSV
+            for line in output_text.splitlines():
+                csv_writer.writerow([line])
+
+        print(f"Output successfully saved to {save_file_path}")
+    except Exception as e:
+        print(f"Error saving output to CSV: {e}")
         sys.exit(1)
 
 # Main function to parse arguments and initiate the process
@@ -71,9 +87,8 @@ def main():
     parser.add_argument("-d", "--domain", required=True, help="Domain to perform information gathering on")
     parser.add_argument("-t", "--file_types", required=True, help="Comma separated file types (e.g., pdf,docx,xls)")
     parser.add_argument("-e", "--delay", type=int, default=2, help="Delay between requests in seconds (default 2)")
-    parser.add_argument("-f", "--save_file", help="Output filename (default toolname_userid_timestamp_inputcommand.csv)")
-    parser.add_argument("-i", "--url_timeout", type=int, default=30, help="URL timeout in seconds (default 30)")
     parser.add_argument("-l", "--search_max", type=int, default=50, help="Maximum number of search results (default 50)")
+    parser.add_argument("-i", "--url_timeout", type=int, default=30, help="URL timeout in seconds (default 30)")
     parser.add_argument("-n", "--download_file_limit", type=int, default=10, help="Limit on the number of files to download (default 10)")
     parser.add_argument("-o", "--save_directory", help="Directory to save output files (optional, defaults to user folder)")
     parser.add_argument("-r", "--threads", type=int, default=5, help="Number of threads to use (default 5)")
@@ -88,7 +103,6 @@ def main():
     input_domain = args.domain
     input_file_types = args.file_types
     input_delay = args.delay
-    input_save_file = args.save_file
     input_search_max = args.search_max
     input_url_timeout = args.url_timeout
     input_download_limit = args.download_file_limit
@@ -103,29 +117,22 @@ def main():
         output_folder = create_user_folder(user_id)
 
         # Default save file name
-        if not input_save_file:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            input_save_file = f"metagoofil_{user_id}_{timestamp}_output.csv"
+        if not args.save_directory:
+            args.save_directory = output_folder
 
-        # If save directory is not provided, use the user folder
-        if not input_save_directory:
-            input_save_directory = output_folder
-
-        # Full path for save file
-        save_file_path = os.path.join(input_save_directory, input_save_file)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_file_name = f"metagoofil_{user_id}_{timestamp}_output.csv"
+        save_file_path = os.path.join(args.save_directory, save_file_name)
 
         # Run the Metagoofil tool
-        run_metagoofil(
-            input_domain, input_file_types, input_delay, save_file_path,
+        terminal_output = run_metagoofil(
+            input_domain, input_file_types, input_delay, save_file_name,
             input_search_max, input_url_timeout, input_download_limit,
-            input_save_directory, input_threads, input_user_agent, input_verbose
+            args.save_directory, input_threads, input_user_agent, input_verbose
         )
 
-        # Check if the output file was created
-        if os.path.exists(save_file_path):
-            print(f"Output saved successfully in: {save_file_path}")
-        else:
-            print("Error: Output file was not generated.")
+        # Save the terminal output to a CSV file
+        save_output_to_csv(terminal_output, save_file_path)
 
     except Exception as e:
         print(f"Error in script execution: {e}")
