@@ -68,12 +68,21 @@ def run_metagoofil(input_domain, file_types, delay, save_file, search_max, url_t
 # Function to save terminal output to a CSV file
 def save_output_to_csv(output_text, save_file_path):
     try:
+        # Open the CSV file for writing
         with open(save_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
             csv_writer = csv.writer(csv_file)
 
-            # Split the output into lines and write each line as a row in the CSV
+            # Add a header row
+            csv_writer.writerow(["Message Type", "Details"])
+
+            # Parse the terminal output and save structured data
             for line in output_text.splitlines():
-                csv_writer.writerow([line])
+                if "[*]" in line:
+                    csv_writer.writerow(["Info", line.strip("[*] ")])
+                elif "[+]" in line:
+                    csv_writer.writerow(["Success", line.strip("[+] ")])
+                elif "Error" in line or "[!]" in line:
+                    csv_writer.writerow(["Error", line.strip("[!] ")])
 
         print(f"Output successfully saved to {save_file_path}")
     except Exception as e:
