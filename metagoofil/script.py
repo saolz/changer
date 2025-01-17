@@ -19,14 +19,14 @@ def create_user_folder(user_id):
 
         # Create user folder
         os.makedirs(output_folder)
-        return output_folder
+        return output_folder, timestamp
 
     except Exception as e:
         print(f"Error creating user folder: {e}")
         sys.exit(1)
 
 # Function to run the Metagoofil command
-def run_metagoofil(input_domain, file_types, delay, save_file, search_max, url_timeout, download_limit, save_directory, threads, user_agent, verbose):
+def run_metagoofil(input_domain, file_types, delay, search_max, url_timeout, download_limit, save_directory, threads, user_agent, verbose):
     try:
         # Build the Metagoofil command
         command = [
@@ -55,8 +55,7 @@ def run_metagoofil(input_domain, file_types, delay, save_file, search_max, url_t
 
         # Check for errors
         if result.returncode != 0:
-            print(f"Error running Metagoofil: {result.stderr}")
-            sys.exit(1)
+            raise Exception(f"Metagoofil error: {result.stderr.strip()}")
 
         print("Metagoofil command completed successfully.")
         return result.stdout  # Return the terminal output
@@ -83,6 +82,8 @@ def save_output_to_csv(output_text, save_file_path):
                     csv_writer.writerow(["Success", line.strip("[+] ")])
                 elif "Error" in line or "[!]" in line:
                     csv_writer.writerow(["Error", line.strip("[!] ")])
+                else:
+                    csv_writer.writerow(["Other", line.strip()])
 
         print(f"Output successfully saved to {save_file_path}")
     except Exception as e:
@@ -123,21 +124,20 @@ def main():
 
     try:
         # Create user folder
-        output_folder = create_user_folder(user_id)
+        output_folder, timestamp = create_user_folder(user_id)
 
         # Default save file name
-        if not args.save_directory:
-            args.save_directory = output_folder
+        if not input_save_directory:
+            input_save_directory = output_folder
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         save_file_name = f"metagoofil_{user_id}_{timestamp}_output.csv"
-        save_file_path = os.path.join(args.save_directory, save_file_name)
+        save_file_path = os.path.join(input_save_directory, save_file_name)
 
         # Run the Metagoofil tool
         terminal_output = run_metagoofil(
-            input_domain, input_file_types, input_delay, save_file_name,
+            input_domain, input_file_types, input_delay,
             input_search_max, input_url_timeout, input_download_limit,
-            args.save_directory, input_threads, input_user_agent, input_verbose
+            input_save_directory, input_threads, input_user_agent, input_verbose
         )
 
         # Save the terminal output to a CSV file
