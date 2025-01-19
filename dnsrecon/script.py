@@ -11,7 +11,7 @@ def create_output_directory(base_dir, user_id):
         # Set IST timezone
         ist = pytz.timezone("Asia/Kolkata")
         current_time = datetime.datetime.now(ist).strftime("%Y-%m-%d_%H-%M-%S")
-        user_folder = f"{user_id}_{current_time}"
+        user_folder = f"{user_id}_{current_time}_{input_domain}"
         output_path = os.path.join(base_dir, user_folder)
         os.makedirs(output_path, exist_ok=True)
         return output_path
