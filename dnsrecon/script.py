@@ -6,26 +6,37 @@ import datetime
 import pytz
 
 # Function to handle the creation of directories
-def create_output_directory(base_dir, user_id):
+def create_output_directory(base_dir, user_id, input_domain):
+    """
+    Creates a directory for storing output files. The folder name includes the user ID, timestamp, and sanitized domain name.
+    """
     try:
         # Set IST timezone
         ist = pytz.timezone("Asia/Kolkata")
         current_time = datetime.datetime.now(ist).strftime("%Y-%m-%d_%H-%M-%S")
-        user_folder = f"{user_id}_{current_time}_{input_domain}"
+
+        # Sanitize domain for folder name
+        sanitized_domain = input_domain.replace("https://", "").replace("http://", "").replace("/", "_")
+        user_folder = f"{user_id}_{current_time}_{sanitized_domain}"
         output_path = os.path.join(base_dir, user_folder)
+
+        # Create the folder
         os.makedirs(output_path, exist_ok=True)
         return output_path
     except Exception as e:
         print(f"Error creating output directory: {e}")
         sys.exit(1)
 
-# Function to construct the DNSRecon command and execute it
+# Function to construct and execute the DNSRecon command
 def run_dnsrecon(args, output_file):
+    """
+    Constructs the DNSRecon command based on user input and executes it.
+    """
     try:
         # Base command
         cmd = ["dnsrecon"]
 
-        # Adding options based on user input
+        # Add user-provided options to the command
         if args.domain:
             cmd.extend(["-d", args.domain])
         if args.ns_server:
@@ -73,7 +84,7 @@ def run_dnsrecon(args, output_file):
         if args.type:
             cmd.extend(["-t", args.type])
 
-        # Redirect output to a file
+        # Redirect output to the specified file
         cmd.extend(["-c", output_file])
 
         # Execute the command
@@ -85,12 +96,15 @@ def run_dnsrecon(args, output_file):
 
 # Main function
 def main():
+    """
+    Main function to parse command-line arguments, create output directories, and execute DNSRecon.
+    """
     parser = argparse.ArgumentParser(description="Automated DNSRecon Script")
 
     # Define arguments
     parser.add_argument("-u", "--user_id", required=True, help="User ID for folder creation")
     parser.add_argument("-o", "--output", help="Output directory for the results")
-    parser.add_argument("-d", "--domain", help="Domain to query")
+    parser.add_argument("-d", "--domain", required=True, help="Domain to query")
     parser.add_argument("-n", "--ns_server", help="Specify the nameserver")
     parser.add_argument("-r", "--range", help="IP range for reverse lookup")
     parser.add_argument("-D", "--dictionary", help="Path to dictionary file for brute force")
@@ -120,12 +134,13 @@ def main():
     base_dir = args.output if args.output else os.path.join(os.getcwd(), "dnsrecon_results")
 
     # Create output directory
-    output_dir = create_output_directory(base_dir, args.user_id)
+    output_dir = create_output_directory(base_dir, args.user_id, args.domain)
 
     # Set IST timezone for output file naming
     ist = pytz.timezone("Asia/Kolkata")
     current_time = datetime.datetime.now(ist).strftime("%Y-%m-%d_%H-%M-%S")
-    output_file = os.path.join(output_dir, f"dnsrecon_{args.user_id}_{current_time}.csv")
+    sanitized_domain = args.domain.replace("https://", "").replace("http://", "").replace("/", "_")
+    output_file = os.path.join(output_dir, f"dnsrecon_{args.user_id}_{current_time}_{sanitized_domain}.csv")
 
     # Run the DNSRecon command
     run_dnsrecon(args, output_file)
