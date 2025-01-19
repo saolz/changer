@@ -1,5 +1,5 @@
 #sample command
-
+python3 script.py -u user1 --domain google.com 
 # Components.txt
 # This file lists all the Python libraries and tools required to run the Fierce automated script.
 
