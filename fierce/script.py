@@ -79,9 +79,10 @@ def main():
     # User and output arguments
     parser.add_argument("-u", "--user_id", required=True, help="User ID for folder creation")
     parser.add_argument("-o", "--output_dir", help="Base directory for output files (default: current directory)")
+    parser.add_argument("-f", "--file_name", help="Specify output file name (optional)")
 
     # Fierce tool arguments
-    parser.add_argument("--domain", dest="input_domain", help="Domain name to test")
+    parser.add_argument("--domain", dest="input_domain", required=True, help="Domain name to test")
     parser.add_argument("--connect", action="store_true", help="Attempt HTTP connection to non-RFC 1918 hosts")
     parser.add_argument("--wide", action="store_true", help="Scan entire class C of discovered records")
     parser.add_argument("--traverse", type=int, help="Scan IPs near discovered records")
@@ -103,10 +104,14 @@ def main():
     # Create user-specific output directory
     user_output_directory = create_user_output_directory(base_output_directory, args.user_id)
 
-    # Create output file name with timestamp
+    # Create output file name
     ist = pytz.timezone("Asia/Kolkata")
     timestamp = datetime.datetime.now(ist).strftime("%Y-%m-%d_%H-%M-%S")
-    output_file_name = f"fierce_{args.user_id}_{timestamp}.csv"
+    if args.file_name:
+        output_file_name = args.file_name
+    else:
+        output_file_name = f"fierce_{args.user_id}_{timestamp}_{args.input_domain}.csv"
+
     output_file_path = os.path.join(user_output_directory, output_file_name)
 
     # Run the Fierce tool with the given arguments
