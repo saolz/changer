@@ -8,7 +8,7 @@ from datetime import datetime
 # Function to create a folder structure for storing results
 def create_user_folder(tool_folder, user_id):
     """Creates a folder structure for storing results."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # Human-readable timestamp
     user_folder = os.path.join(tool_folder, f"{user_id}_{timestamp}")
     os.makedirs(user_folder, exist_ok=True)
     return user_folder, timestamp
@@ -46,7 +46,7 @@ def run_sqlmap(user_folder, tool_name, user_id, url, data, random_agent, proxy, 
         output_text = stdout.decode()
 
         # Save the output to a CSV file
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # Human-readable timestamp
         sanitized_url = url.replace("https://", "").replace("http://", "").replace("/", "_")
         csv_file = os.path.join(
             user_folder,
@@ -109,7 +109,7 @@ def main():
         # Use custom output folder
         user_folder = args.output
         os.makedirs(user_folder, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     else:
         # Create default user folder
         user_folder, timestamp = create_user_folder(tool_folder, args.user_id)
