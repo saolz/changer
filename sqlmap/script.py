@@ -1,173 +1,113 @@
 import os
 import subprocess
 import argparse
-import datetime
+import csv
+from datetime import datetime
 
-def create_output_folder(base_folder, user_id):
-    """Create the main tool folder and user-specific folder."""
+# Function to create a folder structure for storing results
+def create_user_folder(tool_folder, user_id):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    user_folder = os.path.join(tool_folder, f"{user_id}_{timestamp}")
+    os.makedirs(user_folder, exist_ok=True)
+    return user_folder, timestamp
+
+# Function to run the sqlmap command and capture output
+def run_sqlmap(user_folder, user_id, url, data, random_agent, proxy, tor, dbs, dump, other_flags):
     try:
-        # Create the main tool folder if it doesn't exist
-        if not os.path.exists(base_folder):
-            os.makedirs(base_folder)
-
-        # Create user-specific folder with timestamp
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        user_folder = os.path.join(base_folder, f"{user_id}_{timestamp}")
-        os.makedirs(user_folder)
-
-        return user_folder
-    except Exception as e:
-        print(f"Error creating output folder: {e}")
-        exit(1)
-
-def construct_sqlmap_command(args, output_file):
-    """Construct the sqlmap command based on provided arguments."""
-    try:
-        command = ["sqlmap"]
-
-        if args.url:
-            command.extend(["-u", args.url])
-        if args.data:
-            command.extend(["--data", args.data])
-        if args.cookie:
-            command.extend(["--cookie", args.cookie])
-        if args.random_agent:
+        # Base sqlmap command
+        command = ["sqlmap", "-u", url, "--batch"]
+        
+        # Adding optional arguments
+        if data:
+            command += ["--data", data]
+        if random_agent:
             command.append("--random-agent")
-        if args.proxy:
-            command.extend(["--proxy", args.proxy])
-        if args.tor:
+        if proxy:
+            command += ["--proxy", proxy]
+        if tor:
             command.append("--tor")
-        if args.check_tor:
-            command.append("--check-tor")
-        if args.dbms:
-            command.extend(["--dbms", args.dbms])
-        if args.level:
-            command.extend(["--level", str(args.level)])
-        if args.risk:
-            command.extend(["--risk", str(args.risk)])
-        if args.technique:
-            command.extend(["--technique", args.technique])
-
-        # Enumeration options
-        if args.all:
-            command.append("--all")
-        if args.banner:
-            command.append("--banner")
-        if args.current_user:
-            command.append("--current-user")
-        if args.current_db:
-            command.append("--current-db")
-        if args.passwords:
-            command.append("--passwords")
-        if args.dbs:
+        if dbs:
             command.append("--dbs")
-        if args.tables:
-            command.append("--tables")
-        if args.columns:
-            command.append("--columns")
-        if args.schema:
-            command.append("--schema")
-        if args.dump:
+        if dump:
             command.append("--dump")
-        if args.dump_all:
-            command.append("--dump-all")
-        if args.db:
-            command.extend(["-D", args.db])
-        if args.table:
-            command.extend(["-T", args.table])
-        if args.column:
-            command.extend(["-C", args.column])
+        if other_flags:
+            command += other_flags.split()
 
-        # OS Access options
-        if args.os_shell:
-            command.append("--os-shell")
-        if args.os_pwn:
-            command.append("--os-pwn")
+        # Execute the command and capture the output
+        print(f"Running command: {' '.join(command)}")
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
 
-        # General options
-        if args.batch:
-            command.append("--batch")
-        if args.flush_session:
-            command.append("--flush-session")
+        # Save stdout to a variable
+        output_text = stdout.decode()
 
-        # Output redirection
-        command.extend(["-o", output_file])
+        # Save the output to a CSV file
+        csv_file = os.path.join(user_folder, f"sqlmap_{user_id}.csv")
+        save_to_csv(output_text, csv_file)
 
-        return command
+        print(f"Execution completed. Output saved to {csv_file}")
+        return csv_file
+
     except Exception as e:
-        print(f"Error constructing sqlmap command: {e}")
-        exit(1)
+        print(f"[ERROR] An error occurred while running sqlmap: {e}")
+        return None
 
+# Function to parse and save output to a CSV file
+def save_to_csv(output_text, csv_file):
+    try:
+        # Split output into lines
+        lines = output_text.split("\n")
+
+        # Open CSV file for writing
+        with open(csv_file, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["Timestamp", "Message"])  # Header row
+
+            # Parse SQLmap output line-by-line
+            for line in lines:
+                if line.strip():  # Skip empty lines
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    writer.writerow([timestamp, line.strip()])
+
+    except Exception as e:
+        print(f"[ERROR] Failed to save output to CSV: {e}")
+
+# Main function
 def main():
-    """Main function to handle argument parsing and script execution."""
-    parser = argparse.ArgumentParser(description="Automate sqlmap tool execution with customized output management.")
-
-    # User-specific arguments
-    parser.add_argument("--user_id", required=True, help="User ID for creating specific folder and output files.")
-    parser.add_argument("--url", help="Target URL.")
-    parser.add_argument("--data", help="Data string for POST requests.")
-    parser.add_argument("--cookie", help="HTTP Cookie header value.")
-    parser.add_argument("--random_agent", action="store_true", help="Use a random User-Agent header.")
-    parser.add_argument("--proxy", help="Proxy URL.")
-    parser.add_argument("--tor", action="store_true", help="Use Tor network.")
-    parser.add_argument("--check_tor", action="store_true", help="Check Tor network connectivity.")
-    parser.add_argument("--dbms", help="Specify back-end DBMS.")
-    parser.add_argument("--level", type=int, help="Level of tests (1-5).")
-    parser.add_argument("--risk", type=int, help="Risk of tests (1-3).")
-    parser.add_argument("--technique", help="SQL injection techniques to use.")
-
-    # Enumeration options
-    parser.add_argument("--all", action="store_true", help="Retrieve everything.")
-    parser.add_argument("--banner", action="store_true", help="Retrieve DBMS banner.")
-    parser.add_argument("--current_user", action="store_true", help="Retrieve current DBMS user.")
-    parser.add_argument("--current_db", action="store_true", help="Retrieve current database.")
-    parser.add_argument("--passwords", action="store_true", help="Enumerate DBMS user passwords.")
-    parser.add_argument("--dbs", action="store_true", help="Enumerate DBMS databases.")
-    parser.add_argument("--tables", action="store_true", help="Enumerate DBMS tables.")
-    parser.add_argument("--columns", action="store_true", help="Enumerate DBMS columns.")
-    parser.add_argument("--schema", action="store_true", help="Enumerate DBMS schema.")
-    parser.add_argument("--dump", action="store_true", help="Dump DBMS data.")
-    parser.add_argument("--dump_all", action="store_true", help="Dump all DBMS data.")
-    parser.add_argument("--db", help="Specific database to enumerate.")
-    parser.add_argument("--table", help="Specific table to enumerate.")
-    parser.add_argument("--column", help="Specific column to enumerate.")
-
-    # OS Access
-    parser.add_argument("--os_shell", action="store_true", help="Open OS shell.")
-    parser.add_argument("--os_pwn", action="store_true", help="Prompt for Meterpreter/VNC.")
-
-    # General options
-    parser.add_argument("--batch", action="store_true", help="Run in batch mode.")
-    parser.add_argument("--flush_session", action="store_true", help="Flush session data.")
-
-    # Output management
-    parser.add_argument("--output", help="Path to output file.")
-
+    parser = argparse.ArgumentParser(description="Automate sqlmap with output management.")
+    parser.add_argument("--user_id", required=True, help="Unique identifier for the user.")
+    parser.add_argument("--url", required=True, help="Target URL for SQL injection testing.")
+    parser.add_argument("--data", help="POST data to send with the request.")
+    parser.add_argument("--random_agent", action="store_true", help="Use a random User-Agent.")
+    parser.add_argument("--proxy", help="Proxy to connect to the target URL.")
+    parser.add_argument("--tor", action="store_true", help="Use the Tor anonymity network.")
+    parser.add_argument("--dbs", action="store_true", help="Enumerate databases.")
+    parser.add_argument("--dump", action="store_true", help="Dump database contents.")
+    parser.add_argument("--other_flags", help="Additional sqlmap flags to include.")
+    
     args = parser.parse_args()
 
-    # Base tool folder
+    # Create the main tool folder and user folder
     tool_folder = "sqlmap_tool"
+    os.makedirs(tool_folder, exist_ok=True)
+    user_folder, timestamp = create_user_folder(tool_folder, args.user_id)
 
-    # Create output folder
-    user_output_folder = create_output_folder(tool_folder, args.user_id)
+    # Run the sqlmap command
+    run_sqlmap(
+        user_folder=user_folder,
+        user_id=args.user_id,
+        url=args.url,
+        data=args.data,
+        random_agent=args.random_agent,
+        proxy=args.proxy,
+        tor=args.tor,
+        dbs=args.dbs,
+        dump=args.dump,
+        other_flags=args.other_flags,
+    )
 
-    # Generate output file name if not provided
-    if not args.output:
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        args.output = os.path.join(
-            user_output_folder, f"sqlmap_{args.user_id}_{timestamp}.csv"
-        )
+    print(f"Results saved in folder: {user_folder}")
 
-    # Construct sqlmap command
-    sqlmap_command = construct_sqlmap_command(args, args.output)
-
-    # Execute the sqlmap command
-    try:
-        print(f"Running command: {' '.join(sqlmap_command)}")
-        subprocess.run(sqlmap_command)
-        print(f"Output saved to: {args.output}")
-    except Exception as e:
-        print(f"Error running sqlmap: {e}")
 
 if __name__ == "__main__":
     main()
