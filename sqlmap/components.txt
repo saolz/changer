@@ -1,0 +1,22 @@
+sqlmap
+Python 3
+
+Required to run the sqlmap tool and its associated scripts.
+
+ python3 -y
+sqlmap
+
+The main tool for SQL injection testing.
+
+
+
+
+ sqlmap -y
+Dependencies for HTTPS Requests
+
+To ensure proper HTTPS handling during tests.
+
+
+
+
+ python3-requests -y
