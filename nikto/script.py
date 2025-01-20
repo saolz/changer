@@ -30,12 +30,12 @@ def run_nikto(args, output_file):
             cmd.extend(["-host", args.host])
         if args.find_vhosts:
             cmd.append("-vhost")
-        if args.output_format:
-            cmd.extend(["-Format", args.output_format])
+        
+        # Ensure output is always in CSV format
+        cmd.extend(["-Format", "csv", "-output", output_file])
         
         # Redirect output to a file
-        with open(output_file, "w") as out:
-            subprocess.run(cmd, check=True, stdout=out, stderr=subprocess.PIPE)
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         print(f"Nikto command executed successfully. Output saved to {output_file}")
     except subprocess.CalledProcessError as e:
         print(f"Error running Nikto: {e.stderr.decode()}")
@@ -53,7 +53,6 @@ def main():
     parser.add_argument("-o", "--output", help="Output directory for the results")
     parser.add_argument("-H", "--host", required=True, help="Host to scan with Nikto")
     parser.add_argument("-v", "--find_vhosts", action="store_true", help="Find virtual hosts on web and mail servers")
-    parser.add_argument("-f", "--output_format", choices=["txt", "csv", "html", "nbe", "xml"], default="txt", help="Output format of the scan result")
 
     args = parser.parse_args()
 
@@ -66,7 +65,7 @@ def main():
     # Set IST timezone for output file naming
     ist = pytz.timezone("Asia/Kolkata")
     current_time = datetime.datetime.now(ist).strftime("%Y-%m-%d_%H-%M-%S")
-    output_file = os.path.join(output_dir, f"nikto_{args.user_id}_{current_time}.{args.output_format}")
+    output_file = os.path.join(output_dir, f"nikto_{args.user_id}_{current_time}.csv")
 
     # Run the Nikto command
     run_nikto(args, output_file)
