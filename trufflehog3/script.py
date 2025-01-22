@@ -3,7 +3,6 @@
 import argparse
 import subprocess
 import os
-import json
 import csv
 from datetime import datetime
 import pytz  # For timezone handling
@@ -17,21 +16,21 @@ def create_directory(path):
         print(f"Error creating directory: {e}")
         raise
 
-# Function to run TruffleHog and capture its output
-def run_trufflehog(repo_url, output_file):
+# Function to run TruffleHog3 and capture its output
+def run_trufflehog3(target, output_file):
     try:
-        # Run TruffleHog command
-        command = ["trufflehog", "git", repo_url, "--json"]
+        # Run TruffleHog3 command
+        command = ["trufflehog3", target, "--format", "JSON"]
         result = subprocess.run(command, capture_output=True, text=True)
         
         # Check for errors
         if result.returncode != 0:
-            print(f"Error running TruffleHog: {result.stderr}")
+            print(f"Error running TruffleHog3: {result.stderr}")
             return None
         
         # Parse JSON output
         output = result.stdout.strip().split('\n')
-        secrets = [json.loads(line) for line in output if line]
+        secrets = [line for line in output if line]
         
         # Write output to CSV
         with open(output_file, mode='w', newline='') as file:
@@ -41,11 +40,12 @@ def run_trufflehog(repo_url, output_file):
             # Write data if secrets are found
             if secrets:
                 for secret in secrets:
+                    secret_data = json.loads(secret)
                     writer.writerow([
-                        secret.get("DetectorName", ""),
-                        secret.get("SourceMetadata", {}).get("Data", {}).get("Git", {}).get("file", ""),
-                        secret.get("SourceMetadata", {}).get("Data", {}).get("Git", {}).get("line", ""),
-                        secret.get("Raw", "")
+                        secret_data.get("detector", ""),
+                        secret_data.get("file", ""),
+                        secret_data.get("line", ""),
+                        secret_data.get("secret", "")
                     ])
                 print(f"Secrets found. Output saved to: {output_file}")
             else:
@@ -55,28 +55,24 @@ def run_trufflehog(repo_url, output_file):
         
         return secrets
     except Exception as e:
-        print(f"Error during TruffleHog execution: {e}")
+        print(f"Error during TruffleHog3 execution: {e}")
         return None
 
 # Main function
 def main():
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Automate TruffleHog for secret scanning.")
-    parser.add_argument("-f", "--folder", help="Base folder path for output. Default: 'trufflehog_results' in current directory.")
-    parser.add_argument("-o", "--output", help="Custom output file path.")
-    parser.add_argument("repo_url", help="Git repository URL to scan.")
+    parser = argparse.ArgumentParser(description="Automate TruffleHog3 for secret scanning.")
+    parser.add_argument("target", help="Search target (e.g., repository URL or directory).")
     parser.add_argument("-u", "--username", required=True, help="Username for folder naming.")
+    parser.add_argument("-o", "--output", help="Custom output file path.")
     args = parser.parse_args()
 
     # Generate timestamp in IST
     ist = pytz.timezone('Asia/Kolkata')
     timestamp = datetime.now(ist).strftime("%Y%m%d_%H%M%S")
     
-    # Set default folder if not provided
-    if args.folder:
-        base_folder = args.folder
-    else:
-        base_folder = os.path.join(os.getcwd(), "trufflehog_results")
+    # Set default folder
+    base_folder = os.path.join(os.getcwd(), "trufflehog_results")
     
     # Create output folder structure
     user_folder = f"{args.username}_{timestamp}"
@@ -88,12 +84,12 @@ def main():
         output_file = args.output
     else:
         # Generate input command used in terminal for filename
-        input_command = args.repo_url.replace('/', '_').replace(':', '_').replace('.', '_')
+        input_command = args.target.replace('/', '_').replace(':', '_').replace('.', '_')
         output_file = os.path.join(output_folder, f"trufflehog_{args.username}_{timestamp}_{input_command}.csv")
 
-    # Run TruffleHog
-    print(f"Scanning repository: {args.repo_url}")
-    secrets = run_trufflehog(args.repo_url, output_file)
+    # Run TruffleHog3
+    print(f"Scanning target: {args.target}")
+    secrets = run_trufflehog3(args.target, output_file)
 
     if secrets is None:
         print("An error occurred during the scan.")
