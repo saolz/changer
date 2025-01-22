@@ -64,7 +64,7 @@ def main():
     parser = argparse.ArgumentParser(description="Automate TruffleHog for secret scanning.")
     parser.add_argument("-f", "--folder", help="Base folder path for output. Default: 'trufflehog_results' in current directory.")
     parser.add_argument("-o", "--output", help="Custom output file path.")
-    parser.add_argument("-url", "--url", required=True, help="Git repository URL to scan.")
+    parser.add_argument("repo_url", help="Git repository URL to scan.")
     parser.add_argument("-u", "--username", required=True, help="Username for folder naming.")
     args = parser.parse_args()
 
@@ -88,12 +88,12 @@ def main():
         output_file = args.output
     else:
         # Generate input command used in terminal for filename
-        input_command = args.url.replace('/', '_').replace(':', '_').replace('.', '_')
+        input_command = args.repo_url.replace('/', '_').replace(':', '_').replace('.', '_')
         output_file = os.path.join(output_folder, f"trufflehog_{args.username}_{timestamp}_{input_command}.csv")
 
     # Run TruffleHog
-    print(f"Scanning repository: {args.url}")
-    secrets = run_trufflehog(args.url, output_file)
+    print(f"Scanning repository: {args.repo_url}")
+    secrets = run_trufflehog(args.repo_url, output_file)
 
     if secrets is None:
         print("An error occurred during the scan.")
