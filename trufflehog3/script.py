@@ -4,6 +4,7 @@ import argparse
 import subprocess
 import os
 import csv
+import json
 from datetime import datetime
 import pytz  # For timezone handling
 
@@ -21,6 +22,7 @@ def run_trufflehog3(target, output_file):
     try:
         # Run TruffleHog3 command
         command = ["trufflehog3", target, "--format", "JSON"]
+        print(f"Running command: {' '.join(command)}")
         result = subprocess.run(command, capture_output=True, text=True)
         
         # Check for errors
@@ -30,7 +32,17 @@ def run_trufflehog3(target, output_file):
         
         # Parse JSON output
         output = result.stdout.strip().split('\n')
-        secrets = [line for line in output if line]
+        if not output or output == ['']:
+            print("No output from TruffleHog3. No secrets found.")
+            return []
+        
+        secrets = []
+        for line in output:
+            try:
+                secrets.append(json.loads(line))
+            except json.JSONDecodeError:
+                print(f"Failed to parse JSON output: {line}")
+                continue
         
         # Write output to CSV
         with open(output_file, mode='w', newline='') as file:
@@ -40,12 +52,11 @@ def run_trufflehog3(target, output_file):
             # Write data if secrets are found
             if secrets:
                 for secret in secrets:
-                    secret_data = json.loads(secret)
                     writer.writerow([
-                        secret_data.get("detector", ""),
-                        secret_data.get("file", ""),
-                        secret_data.get("line", ""),
-                        secret_data.get("secret", "")
+                        secret.get("detector", ""),
+                        secret.get("file", ""),
+                        secret.get("line", ""),
+                        secret.get("secret", "")
                     ])
                 print(f"Secrets found. Output saved to: {output_file}")
             else:
