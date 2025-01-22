@@ -1,9 +1,7 @@
 import os
-import csv
 import argparse
 import subprocess
 import time
-from urllib.parse import urlparse
 
 # Function to create directories for output
 def create_output_folder(base_folder, tool_name, user_id, timestamp):
@@ -17,22 +15,13 @@ def create_output_folder(base_folder, tool_name, user_id, timestamp):
     
     return user_folder
 
-# Function to validate domain
-def validate_domain(domain):
-    try:
-        parsed_url = urlparse(domain)
-        if not parsed_url.scheme or not parsed_url.netloc:
-            raise ValueError("Invalid domain. Ensure it starts with http:// or https://")
-    except Exception as e:
-        raise ValueError(f"Error parsing domain: {e}")
-
 # Function to execute trufflehog3 command
-def run_trufflehog3(domain, output_file):
+def run_trufflehog3(target, output_file):
     try:
         # Construct the command
         command = [
             "trufflehog3", "--no-entropy", "--no-pattern", "--no-history",
-            "--format", "JSON", domain
+            "--format", "JSON", target
         ]
         # Run the command and capture output
         result = subprocess.run(command, capture_output=True, text=True, check=True)
@@ -47,7 +36,7 @@ def run_trufflehog3(domain, output_file):
 def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Automate trufflehog3 scanning.")
-    parser.add_argument("-d", "--domain", required=True, help="Domain to scan (e.g., https://example.com)")
+    parser.add_argument("target", help="Target to scan (e.g., https://github.com/saolz/changer)")
     parser.add_argument("-u", "--user", required=True, help="User ID for organizing outputs")
     parser.add_argument("-o", "--output", help="Base output folder (default: current directory)")
     args = parser.parse_args()
@@ -62,23 +51,20 @@ def main():
     ist_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 
     try:
-        # Validate domain
-        validate_domain(args.domain)
-
         # Create output folders
         user_folder = create_output_folder(base_folder, tool_name, args.user, ist_time)
 
-        # Default CSV file name
-        csv_filename = f"{tool_name}_{args.user}_{ist_time}_{urlparse(args.domain).netloc.replace('.', '_')}.csv"
-        csv_filepath = os.path.join(user_folder, csv_filename)
+        # Default JSON file name
+        json_filename = f"{tool_name}_{args.user}_{ist_time}_output.json"
+        json_filepath = os.path.join(user_folder, json_filename)
 
         # Run trufflehog3 and save results
-        result = run_trufflehog3(args.domain, csv_filepath)
+        result = run_trufflehog3(args.target, json_filepath)
         print(result)
 
     except Exception as e:
         print(f"Error: {e}")
-        sys.exit(1)
+        exit(1)
 
 if __name__ == "__main__":
     main()
