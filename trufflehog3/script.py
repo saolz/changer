@@ -18,9 +18,9 @@ def create_output_folder(base_folder, tool_name, user_id, timestamp):
 # Function to execute trufflehog3 command
 def run_trufflehog3(target, output_file):
     try:
-        # Construct the command
+        # Construct the command (no conflicting options)
         command = [
-            "trufflehog3", "--no-entropy", "--no-pattern", "--no-history",
+            "trufflehog3", "--no-history",
             "--format", "JSON", target
         ]
         # Run the command and capture output
