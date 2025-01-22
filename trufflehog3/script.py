@@ -17,7 +17,7 @@ def create_directory(path):
         raise
 
 # Function to run TruffleHog3 and capture its output
-def run_trufflehog3(target, output_file):
+def run_trufflehog3(target):
     try:
         # Run TruffleHog3 command
         command = ["trufflehog3", target, "--format", "JSON"]
@@ -42,14 +42,6 @@ def run_trufflehog3(target, output_file):
             except json.JSONDecodeError:
                 print(f"Failed to parse JSON output: {line}")
                 continue
-        
-        # Write output to JSON file
-        with open(output_file, mode='w') as file:
-            if secrets:
-                json.dump(secrets, file, indent=4)
-            else:
-                # Write "No secrets found" in the JSON
-                json.dump({"message": "No secrets found"}, file, indent=4)
         
         return secrets
     except Exception as e:
@@ -87,15 +79,20 @@ def main():
 
     # Run TruffleHog3
     print(f"Scanning target: {args.target}")
-    secrets = run_trufflehog3(args.target, output_file)
+    secrets = run_trufflehog3(args.target)
 
     # Handle scan results
     if secrets is None:
         print("An error occurred during the scan.")
-    elif not secrets:  # secrets is an empty list
-        print("No secrets found. Output saved to JSON.")
     else:
-        print(f"Secrets found. Output saved to: {output_file}")
+        # Write output to JSON file
+        with open(output_file, mode='w') as file:
+            if secrets:
+                json.dump(secrets, file, indent=4)
+                print(f"Secrets found. Output saved to: {output_file}")
+            else:
+                json.dump({"message": "No secrets found"}, file, indent=4)
+                print("No secrets found. Output saved to JSON.")
 
 if __name__ == "__main__":
     main()
