@@ -3,7 +3,6 @@
 import argparse
 import subprocess
 import os
-import csv
 import json
 from datetime import datetime
 import pytz  # For timezone handling
@@ -44,25 +43,13 @@ def run_trufflehog3(target, output_file):
                 print(f"Failed to parse JSON output: {line}")
                 continue
         
-        # Write output to CSV
-        with open(output_file, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            # Write header
-            writer.writerow(["Detector", "File", "Line", "Secret"])
-            # Write data if secrets are found
+        # Write output to JSON file
+        with open(output_file, mode='w') as file:
             if secrets:
-                for secret in secrets:
-                    writer.writerow([
-                        secret.get("detector", ""),
-                        secret.get("file", ""),
-                        secret.get("line", ""),
-                        secret.get("secret", "")
-                    ])
-                print(f"Secrets found. Output saved to: {output_file}")
+                json.dump(secrets, file, indent=4)
             else:
-                # Write "No secrets found" in the CSV
-                writer.writerow(["No secrets found", "", "", ""])
-                print("No secrets found. Output saved to CSV.")
+                # Write "No secrets found" in the JSON
+                json.dump({"message": "No secrets found"}, file, indent=4)
         
         return secrets
     except Exception as e:
@@ -96,16 +83,19 @@ def main():
     else:
         # Generate input command used in terminal for filename
         input_command = args.target.replace('/', '_').replace(':', '_').replace('.', '_')
-        output_file = os.path.join(output_folder, f"trufflehog_{args.username}_{timestamp}_{input_command}.csv")
+        output_file = os.path.join(output_folder, f"trufflehog_{args.username}_{timestamp}_{input_command}.json")
 
     # Run TruffleHog3
     print(f"Scanning target: {args.target}")
     secrets = run_trufflehog3(args.target, output_file)
 
+    # Handle scan results
     if secrets is None:
         print("An error occurred during the scan.")
+    elif not secrets:  # secrets is an empty list
+        print("No secrets found. Output saved to JSON.")
     else:
-        print(f"Scan completed. Results saved to: {output_file}")
+        print(f"Secrets found. Output saved to: {output_file}")
 
 if __name__ == "__main__":
     main()
