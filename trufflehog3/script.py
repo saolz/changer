@@ -62,7 +62,7 @@ def run_trufflehog(repo_url, output_file):
 def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Automate TruffleHog for secret scanning.")
-    parser.add_argument("-f", "--folder", required=True, help="Base folder path for output.")
+    parser.add_argument("-f", "--folder", help="Base folder path for output. Default: 'trufflehog_results' in current directory.")
     parser.add_argument("-o", "--output", help="Custom output file path.")
     parser.add_argument("-url", "--url", required=True, help="Git repository URL to scan.")
     parser.add_argument("-u", "--username", required=True, help="Username for folder naming.")
@@ -72,10 +72,15 @@ def main():
     ist = pytz.timezone('Asia/Kolkata')
     timestamp = datetime.now(ist).strftime("%Y%m%d_%H%M%S")
     
+    # Set default folder if not provided
+    if args.folder:
+        base_folder = args.folder
+    else:
+        base_folder = os.path.join(os.getcwd(), "trufflehog_results")
+    
     # Create output folder structure
-    main_folder = os.path.join(args.folder, "trufflehog_results")
     user_folder = f"{args.username}_{timestamp}"
-    output_folder = os.path.join(main_folder, user_folder)
+    output_folder = os.path.join(base_folder, user_folder)
     create_directory(output_folder)
 
     # Define output file path
