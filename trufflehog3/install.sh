@@ -1,16 +1,26 @@
 #!/bin/bash
 
-# Define the installation directory
-INSTALL_DIR="/usr/local/bin"
+# Script to install trufflehog3 using pip3
 
-# Download and execute the official TruffleHog installation script
-curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b "$INSTALL_DIR"
+# Update package lists to ensure we have the latest information
+echo "Updating package lists..."
+sudo apt-get update -y
+
+# Install pip3 if not already installed
+echo "Checking if pip3 is installed..."
+if ! command -v pip3 &>/dev/null; then
+    echo "pip3 not found, installing pip3..."
+    sudo apt-get install python3-pip -y
+else
+    echo "pip3 is already installed."
+fi
+
+# Install trufflehog3
+echo "Installing trufflehog3..."
+pip3 install trufflehog3
 
 # Verify the installation
-if command -v trufflehog &> /dev/null; then
-    echo "TruffleHog has been installed successfully."
-    trufflehog --version
-else
-    echo "Installation failed. Please check for errors and try again."
-    exit 1
-fi
+echo "Verifying trufflehog3 installation..."
+trufflehog3 --version
+
+echo "Installation complete."
