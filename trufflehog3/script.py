@@ -4,22 +4,30 @@ import subprocess
 import time
 
 def create_output_folder(base_folder, tool_name, user_id, timestamp):
-    tool_folder = os.path.join(base_folder, f"{tool_name}_{timestamp}")
-    os.makedirs(tool_folder, exist_ok=True)
-    user_folder = os.path.join(tool_folder, f"{tool_name}_{user_id}_{timestamp}")
+    # Ensure the parent folder 'toolname_results' exists
+    results_folder = os.path.join(base_folder, f"{tool_name}_results")
+    os.makedirs(results_folder, exist_ok=True)
+
+    # Create the user-specific folder within 'toolname_results'
+    user_folder = os.path.join(results_folder, f"{tool_name}_{user_id}_{timestamp}")
     os.makedirs(user_folder, exist_ok=True)
+    
     return user_folder
 
 def run_trufflehog3(target, output_file):
     try:
-        # Construct the command
+        # Construct the command with additional options
         command = [
-            "trufflehog3", "--no-history",
-            "--format", "JSON", target
+            "trufflehog3", "--no-history", "--format", "JSON",
+            target
         ]
-        print(f"Executing command: {' '.join(command)}")  # Log the command
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print("Raw Output:", result.stdout)  # Print raw output
+        print(f"Executing command: {' '.join(command)}")  # Log the command for debugging
+        
+        result = subprocess.run(command, capture_output=True, text=True)
+        
+        # Print stdout and stderr for further debugging
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
         
         # Handle empty output
         if result.stdout.strip():
@@ -31,6 +39,9 @@ def run_trufflehog3(target, output_file):
         return f"Results saved to {output_file}"
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Trufflehog3 failed: {e.stderr.strip()}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        raise
 
 def main():
     parser = argparse.ArgumentParser(description="Automate trufflehog3 scanning.")
