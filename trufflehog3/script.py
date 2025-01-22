@@ -1,98 +1,84 @@
-#!/usr/bin/env python3
-
+import os
+import csv
 import argparse
 import subprocess
-import os
-import json
-from datetime import datetime
-import pytz  # For timezone handling
+import time
+from urllib.parse import urlparse
 
-# Function to create directories if they don't exist
-def create_directory(path):
-    try:
-        os.makedirs(path, exist_ok=True)
-        print(f"Directory created: {path}")
-    except Exception as e:
-        print(f"Error creating directory: {e}")
-        raise
+# Function to create directories for output
+def create_output_folder(base_folder, tool_name, user_id, timestamp):
+    # Base folder: tool_timestamp
+    tool_folder = os.path.join(base_folder, f"{tool_name}_{timestamp}")
+    os.makedirs(tool_folder, exist_ok=True)
+    
+    # User folder inside the tool folder
+    user_folder = os.path.join(tool_folder, f"{tool_name}_{user_id}_{timestamp}")
+    os.makedirs(user_folder, exist_ok=True)
+    
+    return user_folder
 
-# Function to run TruffleHog3 and capture its output
-def run_trufflehog3(target):
+# Function to validate domain
+def validate_domain(domain):
     try:
-        # Run TruffleHog3 command
-        command = ["trufflehog3", target, "--format", "JSON"]
-        print(f"Running command: {' '.join(command)}")
-        result = subprocess.run(command, capture_output=True, text=True)
-        
-        # Check for errors
-        if result.returncode != 0:
-            print(f"Error running TruffleHog3: {result.stderr}")
-            return None
-        
-        # Parse JSON output
-        output = result.stdout.strip().split('\n')
-        if not output or output == ['']:
-            print("No output from TruffleHog3. No secrets found.")
-            return []
-        
-        secrets = []
-        for line in output:
-            try:
-                secrets.append(json.loads(line))
-            except json.JSONDecodeError:
-                print(f"Failed to parse JSON output: {line}")
-                continue
-        
-        return secrets
+        parsed_url = urlparse(domain)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            raise ValueError("Invalid domain. Ensure it starts with http:// or https://")
     except Exception as e:
-        print(f"Error during TruffleHog3 execution: {e}")
-        return None
+        raise ValueError(f"Error parsing domain: {e}")
+
+# Function to execute trufflehog3 command
+def run_trufflehog3(domain, output_file):
+    try:
+        # Construct the command
+        command = [
+            "trufflehog3", "--no-entropy", "--no-pattern", "--no-history",
+            "--format", "JSON", domain
+        ]
+        # Run the command and capture output
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        # Write JSON output to a file
+        with open(output_file, "w") as f:
+            f.write(result.stdout)
+        return f"Results saved to {output_file}"
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Trufflehog3 failed: {e.stderr.strip()}")
 
 # Main function
 def main():
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Automate TruffleHog3 for secret scanning.")
-    parser.add_argument("target", help="Search target (e.g., repository URL or directory).")
-    parser.add_argument("-u", "--username", required=True, help="Username for folder naming.")
-    parser.add_argument("-o", "--output", help="Custom output file path.")
+    parser = argparse.ArgumentParser(description="Automate trufflehog3 scanning.")
+    parser.add_argument("-d", "--domain", required=True, help="Domain to scan (e.g., https://example.com)")
+    parser.add_argument("-u", "--user", required=True, help="User ID for organizing outputs")
+    parser.add_argument("-o", "--output", help="Base output folder (default: current directory)")
     args = parser.parse_args()
 
-    # Generate timestamp in IST
-    ist = pytz.timezone('Asia/Kolkata')
-    timestamp = datetime.now(ist).strftime("%Y%m%d_%H%M%S")
-    
-    # Set default folder
-    base_folder = os.path.join(os.getcwd(), "trufflehog_results")
-    
-    # Create output folder structure
-    user_folder = f"{args.username}_{timestamp}"
-    output_folder = os.path.join(base_folder, user_folder)
-    create_directory(output_folder)
+    # Tool name
+    tool_name = "trufflehog3"
 
-    # Define output file path
-    if args.output:
-        output_file = args.output
-    else:
-        # Generate input command used in terminal for filename
-        input_command = args.target.replace('/', '_').replace(':', '_').replace('.', '_')
-        output_file = os.path.join(output_folder, f"trufflehog_{args.username}_{timestamp}_{input_command}.json")
+    # Default base folder
+    base_folder = args.output if args.output else os.getcwd()
 
-    # Run TruffleHog3
-    print(f"Scanning target: {args.target}")
-    secrets = run_trufflehog3(args.target)
+    # Generate timestamp in IST and human-readable format
+    ist_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 
-    # Handle scan results
-    if secrets is None:
-        print("An error occurred during the scan.")
-    else:
-        # Write output to JSON file
-        with open(output_file, mode='w') as file:
-            if secrets:
-                json.dump(secrets, file, indent=4)
-                print(f"Secrets found. Output saved to: {output_file}")
-            else:
-                json.dump({"message": "No secrets found"}, file, indent=4)
-                print("No secrets found. Output saved to JSON.")
+    try:
+        # Validate domain
+        validate_domain(args.domain)
+
+        # Create output folders
+        user_folder = create_output_folder(base_folder, tool_name, args.user, ist_time)
+
+        # Default CSV file name
+        csv_filename = f"{tool_name}_{args.user}_{ist_time}_{urlparse(args.domain).netloc.replace('.', '_')}.csv"
+        csv_filepath = os.path.join(user_folder, csv_filename)
+
+        # Run trufflehog3 and save results
+        result = run_trufflehog3(args.domain, csv_filepath)
+        print(result)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
