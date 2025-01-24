@@ -1,3 +1,4 @@
+# script.py
 import os
 import argparse
 import subprocess
@@ -7,7 +8,7 @@ from pathlib import Path
 def create_output_dir(base_dir, user_id, target):
     # Get the current timestamp in IST
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    base_path = Path(base_dir) / f"toolname_results/toolname_{user_id}_{timestamp}"
+    base_path = Path(base_dir) / f"urlextractor_results/{user_id}_{timestamp}"
 
     # Check if directory already exists
     n = 1
@@ -19,6 +20,17 @@ def create_output_dir(base_dir, user_id, target):
     # Create the directory
     final_path.mkdir(parents=True, exist_ok=True)
     return final_path, timestamp
+
+def process_tool_output(raw_output):
+    # Convert raw tool output to a readable JSON-like format
+    lines = raw_output.splitlines()
+    processed_output = {"info": []}
+
+    for line in lines:
+        if line.strip():
+            processed_output["info"].append(line.strip())
+
+    return processed_output
 
 def main():
     parser = argparse.ArgumentParser(description="Automate URLextractor usage.")
@@ -37,18 +49,25 @@ def main():
 
     # Create the output directory structure
     final_dir, timestamp = create_output_dir(output_dir, user_id, target)
-    output_file = final_dir / f"toolname_{user_id}_{timestamp}_{target.replace('/', '_')}.json"
+    output_file = final_dir / f"urlextractor_{user_id}_{timestamp}_{target.replace('/', '_')}.json"
 
     try:
         # Run the tool command
         command = ["./extractor.sh", target]
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+
+        # Process tool output to make it readable
+        processed_output = process_tool_output(result.stdout)
+
+        # Save the processed output to the JSON file
         with open(output_file, "w") as out_file:
-            subprocess.run(command, stdout=out_file, stderr=subprocess.PIPE, check=True)
+            import json
+            json.dump(processed_output, out_file, indent=4)
 
         print(f"Results saved to: {output_file}")
 
     except subprocess.CalledProcessError as e:
-        print(f"Error occurred while running the tool: {e.stderr.decode()}")
+        print(f"Error occurred while running the tool: {e.stderr}")
 
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
