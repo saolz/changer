@@ -1,80 +1,91 @@
-import subprocess
-import argparse
-import re
+import os
 import json
+import argparse
+import subprocess
+import datetime
 
-# Function to parse Nmap scan results
-def parse_nmap_output(scan_type, output):
-    # Example pattern to look for versions or other valuable info
-    if scan_type == "database_services":
-        if "3306/tcp" in output:
-            return "MySQL detected"
-        if "5432/tcp" in output:
-            return "PostgreSQL detected"
-        if "1433/tcp" in output:
-            return "MSSQL detected"
-        if "1521/tcp" in output:
-            return "Oracle detected"
-        return "No database services detected"
-
-    # Look for version information
-    if "version" in output:
-        match = re.search(r"Version: (\S+)", output)
-        if match:
-            return match.group(1)
-    return "Version not detected"
-
-# Run Nmap scan
 def run_nmap_scan(target):
-    scan_data = {}
+    """
+    Runs Nmap scans for MySQL version, MySQL users, MySQL databases, and other database services.
+    """
+    commands = {
+        "mysql_version": f"nmap -p 3306 --script=mysql-info {target}",
+        "mysql_users": f"nmap -p 3306 --script=mysql-users --script-args=mysqluser=root {target}",
+        "mysql_databases": f"nmap -p 3306 --script=mysql-databases --script-args=mysqluser=root {target}",
+        "db_services": f"nmap -p 3306,5432,1433,1521 -sV {target}"  # MySQL, PostgreSQL, MSSQL, Oracle
+    }
 
-    try:
-        # MySQL Version Scan
-        version_scan = subprocess.run(
-            ["nmap", "-p", "3306", "--script=mysql-info", target],
-            capture_output=True, text=True)
-        scan_data["mysql_version"] = parse_nmap_output("mysql_version", version_scan.stdout)
+    results = {}
+    for key, cmd in commands.items():
+        try:
+            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL, text=True)
+            results[key] = output.strip() if output.strip() else "Not detected"
+        except subprocess.CalledProcessError:
+            results[key] = "Not detected"
+    
+    return results
 
-        # MySQL Users Enumeration
-        user_scan = subprocess.run(
-            ["nmap", "-p", "3306", "--script=mysql-users", target],
-            capture_output=True, text=True)
-        scan_data["mysql_users"] = parse_nmap_output("mysql_users", user_scan.stdout)
+def parse_nmap_output(nmap_results):
+    """
+    Parses the Nmap output to extract database details.
+    """
+    parsed_data = {
+        "MySQL Version": "Not detected",
+        "MySQL Users": "No users found",
+        "MySQL Databases": "No databases found",
+        "Detected Database Services": []
+    }
 
-        # MySQL Database Enumeration
-        db_scan = subprocess.run(
-            ["nmap", "-p", "3306", "--script=mysql-databases", target],
-            capture_output=True, text=True)
-        scan_data["mysql_databases"] = parse_nmap_output("mysql_databases", db_scan.stdout)
+    if "mysql_version" in nmap_results and "3306/tcp open" in nmap_results["mysql_version"]:
+        parsed_data["MySQL Version"] = nmap_results["mysql_version"]
 
-        # Full DB Service Scan (MySQL, PostgreSQL, MSSQL, Oracle)
-        full_scan = subprocess.run(
-            ["nmap", "-p", "3306,5432,1433,1521", "--script=*db*", target],
-            capture_output=True, text=True)
-        scan_data["database_services"] = parse_nmap_output("database_services", full_scan.stdout)
+    if "mysql_users" in nmap_results and "3306/tcp open" in nmap_results["mysql_users"]:
+        parsed_data["MySQL Users"] = nmap_results["mysql_users"]
 
-    except Exception as e:
-        scan_data["error"] = str(e)
+    if "mysql_databases" in nmap_results and "3306/tcp open" in nmap_results["mysql_databases"]:
+        parsed_data["MySQL Databases"] = nmap_results["mysql_databases"]
 
-    return scan_data
+    if "db_services" in nmap_results:
+        for service in ["MySQL", "PostgreSQL", "MSSQL", "Oracle"]:
+            if service.lower() in nmap_results["db_services"].lower():
+                parsed_data["Detected Database Services"].append(service)
+    
+    if not parsed_data["Detected Database Services"]:
+        parsed_data["Detected Database Services"] = "No database services detected"
 
-# Main function to handle arguments and trigger the scan
+    return parsed_data
+
+def save_results(tool_name, user, target, parsed_data, output_dir=None):
+    """
+    Saves the scan results in a structured JSON file.
+    """
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    default_dir = f"./{tool_name}_results/{tool_name}_{user}_{timestamp}/"
+    output_directory = output_dir if output_dir else default_dir
+
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
+    output_file = f"{output_directory}{tool_name}_{user}_{timestamp}_{target}.json"
+    with open(output_file, "w") as f:
+        json.dump(parsed_data, f, indent=4)
+
+    print(f"Results saved to {output_file}")
+
 def main():
-    parser = argparse.ArgumentParser(description="Automated Nmap Database Scanner")
-    parser.add_argument("target", help="Target IP address or hostname")
+    parser = argparse.ArgumentParser(description="Automate Nmap database scanning.")
+    parser.add_argument("--target", required=True, help="Target IP or domain")
     parser.add_argument("-u", required=True, help="User ID")
-    parser.add_argument("--target", help="Specify the target domain")
+    parser.add_argument("-o", help="Optional output directory")
 
     args = parser.parse_args()
+    tool_name = "db_scan"
 
-    target = args.target if args.target else args.target  # Use the provided target or default to domain
-
-    print(f"[+] Scanning target: {target}")
-
-    scan_data = run_nmap_scan(target)
-
-    # Output the scan data in JSON format
-    print(json.dumps(scan_data, indent=4))
+    print(f"Running Nmap scan on {args.target}...")
+    nmap_results = run_nmap_scan(args.target)
+    parsed_data = parse_nmap_output(nmap_results)
+    
+    save_results(tool_name, args.u, args.target, parsed_data, args.o)
 
 if __name__ == "__main__":
     main()
