@@ -1,48 +1,30 @@
 import subprocess
+import argparse
 import re
+import json
 
-# Function to parse output and extract relevant details
+# Function to parse Nmap scan results
 def parse_nmap_output(scan_type, output):
-    # Searching for MySQL version
-    if scan_type == "mysql_version":
-        match = re.search(r"Version: (.*)", output)
-        if match:
-            return match.group(1)
-        else:
-            return "MySQL version not detected"
-
-    # Searching for MySQL users
-    elif scan_type == "mysql_users":
-        match = re.search(r"Users: (.*)", output)
-        if match:
-            return match.group(1)
-        else:
-            return "No MySQL users found"
-
-    # Searching for MySQL databases
-    elif scan_type == "mysql_databases":
-        match = re.search(r"Databases: (.*)", output)
-        if match:
-            return match.group(1)
-        else:
-            return "No MySQL databases found"
-    
-    # Searching for database services
-    elif scan_type == "database_services":
+    # Example pattern to look for versions or other valuable info
+    if scan_type == "database_services":
         if "3306/tcp" in output:
             return "MySQL detected"
-        elif "5432/tcp" in output:
+        if "5432/tcp" in output:
             return "PostgreSQL detected"
-        elif "1433/tcp" in output:
+        if "1433/tcp" in output:
             return "MSSQL detected"
-        elif "1521/tcp" in output:
+        if "1521/tcp" in output:
             return "Oracle detected"
-        else:
-            return "No database services detected"
+        return "No database services detected"
 
-    return "Scan result not recognized"
+    # Look for version information
+    if "version" in output:
+        match = re.search(r"Version: (\S+)", output)
+        if match:
+            return match.group(1)
+    return "Version not detected"
 
-# Run Nmap scan and parse results
+# Run Nmap scan
 def run_nmap_scan(target):
     scan_data = {}
 
@@ -76,11 +58,20 @@ def run_nmap_scan(target):
 
     return scan_data
 
-# Main function
+# Main function to handle arguments and trigger the scan
 def main():
-    target = "testphp.vulnweb.com"
-    scan_data = run_nmap_scan(target)
-    print(scan_data)
+    parser = argparse.ArgumentParser(description="Automated Nmap Database Scanner")
+    parser.add_argument("target", help="Target IP address or hostname")
+    parser.add_argument("-u", required=True, help="User ID")
+
+    args = parser.parse_args()
+
+    print(f"[+] Scanning target: {args.target}")
+
+    scan_data = run_nmap_scan(args.target)
+
+    # Output the scan data in JSON format
+    print(json.dumps(scan_data, indent=4))
 
 if __name__ == "__main__":
     main()
