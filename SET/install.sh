@@ -1,17 +1,16 @@
-# install.sh
 #!/bin/bash
 
-echo "Installing Social Engineering Toolkit (SET) and dependencies..."
+echo "Installing Social-Engineer Toolkit (SET) and dependencies..."
 
-# Update package list
-sudo apt update
+# Update system
+sudo apt update && sudo apt install -y git python3-pip
 
-# Install SET
-sudo apt install -y setoolkit
+# Clone SET from GitHub
+git clone https://github.com/trustedsec/social-engineer-toolkit.git setoolkit
 
-# Install Python dependencies
-if [ -f components.txt ]; then
-    pip3 install -r components.txt
-fi
+# Navigate to SET directory and install
+cd setoolkit || exit
+pip3 install -r requirements.txt
+python3 setup.py install
 
-echo "Installation complete."
+echo "Installation complete. Run using: sudo setoolkit"
