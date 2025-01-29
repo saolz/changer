@@ -25,37 +25,56 @@ def create_output_directory(tool_name, user, target, base_output_dir=None, file_
 
 # Parse Nmap output to extract useful information
 def parse_nmap_output(output):
-    # Regular expressions for extracting useful information
+    # Initialize the results dictionary
     services = {}
-    
-    # General Database Services (MySQL, PostgreSQL, MSSQL, Redis, MongoDB)
-    db_services = {
-        "mysql": "MySQL detected",
-        "postgresql": "PostgreSQL detected",
-        "mssql": "MSSQL detected",
-        "mongodb": "MongoDB detected",
-        "redis": "Redis detected",
-        "oracle": "Oracle detected"
-    }
 
-    for db, db_name in db_services.items():
-        if db_name.lower() in output.lower():
-            services[db] = db_name
+    # Check for MySQL version
+    if "mysql" in output.lower():
+        version_match = re.search(r"mysql.*?version\s*([^\s]+)", output, re.IGNORECASE)
+        if version_match:
+            services["mysql_version"] = version_match.group(1)
+        else:
+            services["mysql_version"] = "Version not detected"
     
-    # Extract database version info if available
-    version_match = re.search(r"(MySQL|PostgreSQL|MSSQL|MongoDB|Redis|Oracle)\s*version\s*([\d\.]+)", output)
-    if version_match:
-        services["version"] = version_match.group(2)
-    else:
-        services["version"] = "Version not detected"
+    # Check for MongoDB info
+    if "mongodb" in output.lower():
+        services["mongodb"] = "MongoDB detected"
+        db_match = re.findall(r"Database:\s*(\S+)", output)
+        if db_match:
+            services["mongodb_databases"] = db_match
+        else:
+            services["mongodb_databases"] = "No databases found"
     
-    # Extract database users (if mentioned)
-    users_match = re.findall(r"User:\s*(\S+)", output)
-    services["users"] = users_match if users_match else "No users found"
+    # Check for Redis info
+    if "redis" in output.lower():
+        services["redis"] = "Redis detected"
     
-    # Extract database details (schemas, databases, etc.)
-    db_match = re.findall(r"Database:\s*(\S+)", output)
-    services["databases"] = db_match if db_match else "No databases found"
+    # Check for PostgreSQL info
+    if "postgresql" in output.lower():
+        services["postgresql"] = "PostgreSQL detected"
+        version_match = re.search(r"PostgreSQL\s*version\s*([^\s]+)", output, re.IGNORECASE)
+        if version_match:
+            services["postgresql_version"] = version_match.group(1)
+        else:
+            services["postgresql_version"] = "Version not detected"
+    
+    # Check for MSSQL info
+    if "mssql" in output.lower():
+        services["mssql"] = "MSSQL detected"
+        version_match = re.search(r"Microsoft\s*SQL\s*Server\s*version\s*([^\s]+)", output, re.IGNORECASE)
+        if version_match:
+            services["mssql_version"] = version_match.group(1)
+        else:
+            services["mssql_version"] = "Version not detected"
+
+    # Check for Oracle DB info
+    if "oracle" in output.lower():
+        services["oracle"] = "Oracle detected"
+        version_match = re.search(r"Oracle\s*version\s*([^\s]+)", output, re.IGNORECASE)
+        if version_match:
+            services["oracle_version"] = version_match.group(1)
+        else:
+            services["oracle_version"] = "Version not detected"
 
     return services
 
@@ -65,8 +84,11 @@ def run_nmap_scan(target):
 
     try:
         # Full DB Service Scan (MySQL, PostgreSQL, MSSQL, Oracle, MongoDB, Redis)
-        full_scan = subprocess.run(["nmap", "-p", "3306,5432,1433,1521,27017,6379", "--script=*db*,*nosql*", target],
-                                   capture_output=True, text=True)
+        full_scan = subprocess.run(
+            ["nmap", "-p", "3306,5432,1433,1521,27017,6379", "--script=mysql-info,mongodb-info,postgresql-info,mssql-info,oracle-info", target],
+            capture_output=True, text=True)
+
+        # Parse the Nmap output
         scan_data["database_services"] = parse_nmap_output(full_scan.stdout)
 
     except Exception as e:
