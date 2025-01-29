@@ -63,12 +63,15 @@ def main():
     parser = argparse.ArgumentParser(description="Automated Nmap Database Scanner")
     parser.add_argument("target", help="Target IP address or hostname")
     parser.add_argument("-u", required=True, help="User ID")
+    parser.add_argument("--target", help="Specify the target domain")
 
     args = parser.parse_args()
 
-    print(f"[+] Scanning target: {args.target}")
+    target = args.target if args.target else args.target  # Use the provided target or default to domain
 
-    scan_data = run_nmap_scan(args.target)
+    print(f"[+] Scanning target: {target}")
+
+    scan_data = run_nmap_scan(target)
 
     # Output the scan data in JSON format
     print(json.dumps(scan_data, indent=4))
