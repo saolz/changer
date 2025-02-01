@@ -1,3 +1,4 @@
+python phishing_mailer.py --server smtp.yandex.com --port 587 --username dloklok@yandex.com --password YOUR_PASSWORD --sender dloklok@yandex.com --recipient target@example.com --subject "Important Update" --html email_template.html --attachment file.pdf
 #!/bin/bash
 
 echo "Installing Social-Engineer Toolkit (SET) and dependencies..."
