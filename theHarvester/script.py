@@ -28,7 +28,7 @@ def run_theharvester(target, output_path, user_id, timestamp):
 
 def main():
     parser = argparse.ArgumentParser(description="Automate theHarvester tool usage.")
-    parser.add_argument("target", help="Target domain for OSINT gathering.")
+    parser.add_argument("-t", "--target", required=True, help="Target domain for OSINT gathering.")
     parser.add_argument("-u", "--user", required=True, help="User ID for tracking.")
     parser.add_argument("-o", "--output", default="theharvester_results", help="Output directory (default: theharvester_results/).")
     
