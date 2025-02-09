@@ -16,7 +16,7 @@ sudo apt update -y && sudo apt full-upgrade -y
 TOOLS=(
     "nmap" "netcat" "whatweb" "recon-ng" "psmisc"
     "john" "hashcat" "hydra" "crackmapexec"
-    "burpsuite" "owasp-zap" "nikto" "wfuzz"
+    "nikto" "wfuzz"
     "wireshark" "tshark" "sleuthkit" "exiftool"
     "bettercap" "proxychains" "ettercap-text-only"
 )
@@ -38,7 +38,7 @@ if command_exists "burpsuite"; then
     installed_tools+=("burpsuite")
 else
     echo "Installing Burp Suite..."
-    wget -O burpsuite.sh "https://portswigger-cdn.net/burp/releases/download?product=community&version=latest&type=Linux"
+    wget -O burpsuite.sh "https://portswigger.net/burp/releases/download?product=community&version=latest&type=Linux" --content-disposition
     chmod +x burpsuite.sh && ./burpsuite.sh
     if command_exists "burpsuite"; then
         installed_tools+=("burpsuite")
@@ -54,7 +54,7 @@ else
     echo "Installing OWASP ZAP..."
     wget -O zap.tar.gz "https://github.com/zaproxy/zaproxy/releases/latest/download/ZAP_2_13_0_Linux.tar.gz"
     tar -xvzf zap.tar.gz -C /opt/
-    ln -s /opt/ZAP_2_13_0/zap.sh /usr/local/bin/zaproxy
+    sudo ln -sf /opt/ZAP_2_13_0/zap.sh /usr/local/bin/zaproxy
     if command_exists "zaproxy"; then
         installed_tools+=("owasp-zap")
     else
