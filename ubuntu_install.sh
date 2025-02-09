@@ -99,12 +99,14 @@ else
     fi
 fi
 
-# PsExec
+# PsExec (via Impacket)
 if [ -d "impacket" ]; then
     installed_tools+=("PsExec")
 else
     if git clone https://github.com/SecureAuthCorp/impacket.git impacket; then
         installed_tools+=("PsExec")
+        cd impacket && pip3 install .
+        cd ..
     else
         failed_tools+=("PsExec")
     fi
@@ -118,6 +120,8 @@ else
         installed_tools+=("evilginx2")
         cd evilginx2 && make && sudo make install
         cd ..
+    else
+        failed_tools+=("evilginx2")
     fi
 fi
 
@@ -177,6 +181,40 @@ else
         installed_tools+=("radare2")
         cd radare2 && ./sys/install.sh
         cd ..
+    fi
+fi
+
+# Responder
+if [ ! -d "Responder" ]; then
+    git clone https://github.com/lgandx/Responder.git Responder && installed_tools+=("Responder") || failed_tools+=("Responder")
+fi
+
+# Social-Engineer Toolkit (SET)
+if ! command_exists "setoolkit"; then
+    git clone https://github.com/trustedsec/social-engineer-toolkit.git setoolkit && \
+    cd setoolkit && python3 setup.py install && cd .. && installed_tools+=("SET") || failed_tools+=("SET")
+fi
+
+# GoPhish
+if [ ! -d "gophish" ]; then
+    echo "Installing GoPhish..."
+    wget https://github.com/gophish/gophish/releases/download/v0.12.1/gophish-v0.12.1-linux-64bit.zip
+    unzip gophish-v0.12.1-linux-64bit.zip -d gophish
+    if [ -d "gophish" ]; then
+        installed_tools+=("GoPhish")
+    else
+        failed_tools+=("GoPhish")
+    fi
+fi
+
+# Mimikatz
+if [ ! -d "mimikatz" ]; then
+    echo "Installing Mimikatz..."
+    git clone https://github.com/gentilkiwi/mimikatz.git mimikatz
+    if [ -d "mimikatz" ]; then
+        installed_tools+=("Mimikatz")
+    else
+        failed_tools+=("Mimikatz")
     fi
 fi
 
