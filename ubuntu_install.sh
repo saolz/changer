@@ -49,7 +49,7 @@ else
 fi
 
 # Install OWASP ZAP
-if [ -d "/opt/ZAP" ]; then
+if [ -d "owasp-zap" ]; then
     installed_tools+=("owasp-zap")
 else
     echo "Installing OWASP ZAP..."
