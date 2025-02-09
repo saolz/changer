@@ -16,7 +16,7 @@ sudo apt update -y && sudo apt full-upgrade -y
 TOOLS=(
     "nmap" "netcat" "whatweb" "recon-ng" "psmisc"
     "john" "hashcat" "hydra" "crackmapexec"
-    "nikto" "wfuzz"
+    "burpsuite" "nikto" "wfuzz"
     "wireshark" "tshark" "sleuthkit" "exiftool"
     "bettercap" "proxychains" "ettercap-text-only"
 )
@@ -32,37 +32,6 @@ for tool in "${TOOLS[@]}"; do
         fi
     fi
 done
-
-# Install Burp Suite
-if command_exists "burpsuite"; then
-    installed_tools+=("burpsuite")
-else
-    echo "Installing Burp Suite..."
-    wget -O burpsuite.sh "https://portswigger.net/burp/releases/download?product=community&type=Linux"
-    chmod +x burpsuite.sh && ./burpsuite.sh
-    if command_exists "burpsuite"; then
-        installed_tools+=("burpsuite")
-    else
-        failed_tools+=("burpsuite")
-    fi
-fi
-
-# Install OWASP ZAP
-if command_exists "zaproxy"; then
-    installed_tools+=("owasp-zap")
-else
-    echo "Installing OWASP ZAP..."
-    sudo apt install -y openjdk-17-jre
-    export INSTALL4J_JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-    wget -O zap.tar.gz "https://github.com/zaproxy/zaproxy/releases/latest/download/ZAP_2_16_0_Linux.tar.gz"
-    tar -xvzf zap.tar.gz -C /opt/
-    sudo ln -sf /opt/ZAP_2_16_0/zap.sh /usr/local/bin/zaproxy
-    if command_exists "zaproxy"; then
-        installed_tools+=("owasp-zap")
-    else
-        failed_tools+=("owasp-zap")
-    fi
-fi
 
 # Special installations
 # Amass & Sublist3r
@@ -178,7 +147,16 @@ else
     fi
 fi
 
+# OWASP ZAP
+if [ -d "ZAP_2.16.0" ]; then
+    installed_tools+=("owasp-zap")
+else
+    wget https://github.com/zaproxy/zaproxy/releases/download/v2.16.0/ZAP_2.16.0_Linux.tar.gz -O zap.tar.gz
+    tar -xzf zap.tar.gz && rm zap.tar.gz
+    mv ZAP_2.16.0 owasp-zap
+    installed_tools+=("owasp-zap")
+fi
+
 # Display installation summary
 echo -e "\nInstallation Summary:"
 echo -e "Installed tools: ${installed_tools[@]}"
-echo -e "Failed to install: ${failed_tools[@]}"
