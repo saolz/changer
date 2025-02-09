@@ -38,8 +38,8 @@ if command_exists "burpsuite"; then
     installed_tools+=("burpsuite")
 else
     echo "Installing Burp Suite..."
-    wget -O burpsuite_installer.sh "https://portswigger.net/burp/releases/download?product=community&version=latest&type=Linux"
-    chmod +x burpsuite_installer.sh && ./burpsuite_installer.sh
+    wget -O burpsuite.sh "https://portswigger.net/burp/releases/download?product=community&type=Linux"
+    chmod +x burpsuite.sh && ./burpsuite.sh
     if command_exists "burpsuite"; then
         installed_tools+=("burpsuite")
     else
@@ -52,8 +52,11 @@ if command_exists "zaproxy"; then
     installed_tools+=("owasp-zap")
 else
     echo "Installing OWASP ZAP..."
-    wget -O zap_installer.sh "https://github.com/zaproxy/zaproxy/releases/latest/download/ZAP_2_16_0_unix.sh"
-    chmod +x zap_installer.sh && sudo ./zap_installer.sh
+    sudo apt install -y openjdk-17-jre
+    export INSTALL4J_JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+    wget -O zap.tar.gz "https://github.com/zaproxy/zaproxy/releases/latest/download/ZAP_2_16_0_Linux.tar.gz"
+    tar -xvzf zap.tar.gz -C /opt/
+    sudo ln -sf /opt/ZAP_2_16_0/zap.sh /usr/local/bin/zaproxy
     if command_exists "zaproxy"; then
         installed_tools+=("owasp-zap")
     else
